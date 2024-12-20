@@ -28,22 +28,21 @@ using namespace cuda::experimental::stf;
 
 int main(int argc, char* argv[])
 {
-  ncclComm_t comms[4];
 
   int size = 32*1024*1024;
 
-//  //managing 4 devices
-//  int nDev = 4;
-//  int devs[4] = { 0, 1, 2, 3 };
+  int nDev;
+  CUDACHECK(cudaGetDeviceCount(&nDev));
 
-  int nDev = 1;
-  int devs[1] = { 0};
+  ::std::vector<int> devs(nDev);
+  for (int i = 0; i < nDev; i++) {
+      devs.push_back(i);
+  }
 
   context ctx;
 
-  //allocating and initializing device buffers
-  logical_data<slice<float>> sendbuff[nDev];
-  logical_data<slice<float>> recvbuff[nDev];
+  ::std::vector<logical_data<slice<float>>> sendbuff(nDev);
+  ::std::vector<logical_data<slice<float>>> recvbuff(nDev);
 
   // Shape of every buffers
   auto shape = shape_of<slice<float>>(size);
@@ -62,8 +61,8 @@ int main(int argc, char* argv[])
   }
 
   //initializing NCCL
-  NCCLCHECK(ncclCommInitAll(comms, nDev, devs));
-
+  ::std::vector<ncclComm_t> comms(nDev);
+  NCCLCHECK(ncclCommInitAll(comms.data(), nDev, devs.data()));
 
    //calling NCCL communication API. Group API is required when using
    //multiple devices per thread
